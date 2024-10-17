@@ -3,9 +3,10 @@
  * @author FengWenxi (ThorfromAsgard@outlook.com)
  * @brief A simple implementation of singleton class using template and perfect forwarding.
  * @version 1.0
- * @date 2024-10-08
+ * @date 2024-06-08
  *
  * <========================================================================>
+ *          github page: https://github.com/ThorfromAsgard/cybertron
  *                   © 2024 FengWenxi. All Rights Reserved.
  * <========================================================================>
  *

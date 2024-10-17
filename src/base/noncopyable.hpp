@@ -3,9 +3,10 @@
  * @author FengWenxi (ThorfromAsgard@outlook.com)
  * @brief A noncopyable base class
  * @version 1.0
- * @date 2024-10-08
+ * @date 2024-06-08
  *
  * <========================================================================>
+ *          github page: https://github.com/ThorfromAsgard/cybertron
  *                   © 2024 FengWenxi. All Rights Reserved.
  * <========================================================================>
  *

@@ -3,9 +3,10 @@
  * @author FengWenxi (ThorfromAsgard@outlook.com)
  * @brief An implementation of blocking queue using std::condition_variable #NOTE This only works on C++11 standard.
  * @version 0.1
- * @date 2024-10-08
+ * @date 2024-06-08
  *
  * <========================================================================>
+ *          github page: https://github.com/ThorfromAsgard/cybertron         
  *                   © 2024 FengWenxi. All Rights Reserved.
  * <========================================================================>
  *
@@ -28,7 +29,6 @@ template <typename T>
  * consumption.
  *
  */
-// TODO: add timeout for push method
 class BlockingQueue : public Noncopyable {
 public:
     /**
@@ -44,7 +44,8 @@ public:
         : push_block_(push_block),
           capacity_limit_(capacity_limit),
           mutex_(),
-          consumer_(mutex_),
+          producer_(),
+          consumer_(),
           deque_(),
           active_(true) {
         std::cout << "Blocking Queue capacity: " << capacity_limit_ << std::endl;
@@ -137,7 +138,7 @@ public:
                 deque_.pop_front();
             }
         }
-        deque_.push_back(std::move(item));
+        deque_.push_back(std::move(element));
         consumer_.notify_one();
         return true;
     }
