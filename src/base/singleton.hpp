@@ -1,15 +1,14 @@
 /**
  * @file singleton.hpp
  * @author FengWenxi (ThorfromAsgard@outlook.com)
- * @brief A simple implementation of singleton class using template and perfect
- * forwarding
+ * @brief A simple implementation of singleton class using template and perfect forwarding.
  * @version 1.0
  * @date 2024-10-08
- * 
+ *
  * <========================================================================>
- *                   © 2024 FengWenxi. All Rights Reserved.                
+ *                   © 2024 FengWenxi. All Rights Reserved.
  * <========================================================================>
- * 
+ *
  */
 #ifndef CYBERTRON_BASE_SINGLETON_HPP
 #define CYBERTRON_BASE_SINGLETON_HPP
@@ -21,10 +20,9 @@
 namespace cybertron::base {
 template <typename T>
 /**
-	 * @brief A template singleton class, use singleton through function
-	 * "GetInstance"
-	 *
-	 */
+ * @brief A template singleton class, use singleton through function "GetInstance()"
+ *
+ */
 class Singleton : public Noncopyable {
 public:
     Singleton(Singleton&&) = delete;
@@ -33,8 +31,7 @@ public:
 
     template <typename... Args>
     static T& GetInstance(Args&&... args) {
-        std::call_once(init_flag_, Initialize<Args...>,
-                       std::forward<Args>(args)...);
+        std::call_once(init_flag_, Initialize<Args...>, std::forward<Args>(args)...);
         return *instance_;
     }
 

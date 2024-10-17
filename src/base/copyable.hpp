@@ -4,11 +4,11 @@
  * @brief A copyable base class
  * @version 1.0
  * @date 2024-10-08
- * 
+ *
  * <========================================================================>
- *                   © 2024 FengWenxi. All Rights Reserved.                
+ *                   © 2024 FengWenxi. All Rights Reserved.
  * <========================================================================>
- * 
+ *
  */
 #ifndef CYBERTRON_BASE_COPYABLE_HPP
 #define CYBERTRON_BASE_COPYABLE_HPP

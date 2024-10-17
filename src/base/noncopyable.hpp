@@ -4,19 +4,18 @@
  * @brief A noncopyable base class
  * @version 1.0
  * @date 2024-10-08
- * 
+ *
  * <========================================================================>
- *                   © 2024 FengWenxi. All Rights Reserved.                
+ *                   © 2024 FengWenxi. All Rights Reserved.
  * <========================================================================>
- * 
+ *
  */
 #ifndef CYBERTRON_BASE_NONCOPYABLE_HPP
 #define CYBERTRON_BASE_NONCOPYABLE_HPP
 
 namespace cybertron::base {
 /**
- * @brief A tag class emphasises that the objects are noncopyable.
- * Derived class should be noncopyable, too.
+ * @brief A tag class emphasises that the objects are noncopyable. Derived class should be noncopyable, too.
  *
  */
 class Noncopyable {
