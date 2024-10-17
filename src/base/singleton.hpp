@@ -1,25 +1,73 @@
-/*
- * @Author: ThorfromAsgard ThorfromAsgard@outlook.com
- * @Date: 2024-05-07 13:19:53
- * @LastEditors: ThorfromAsgard ThorfromAsgard@outlook.com
- * @LastEditTime: 2024-05-07 13:21:04
- * @FilePath: /cybertron/src/base/singleton.hpp
- * @Description: Write your file description here.
- * Copyright (c) 2024 by ThorfromAsgard@outlook.com, All Rights Reserved.
+/**
+ * @file singleton.hpp
+ * @author FengWenxi (ThorfromAsgard@outlook.com)
+ * @brief A simple implementation of singleton class using template and perfect
+ * forwarding
+ * @version 1.0
+ * @date 2024-10-08
+ * 
+ * <========================================================================>
+ *                   © 2024 FengWenxi. All Rights Reserved.                
+ * <========================================================================>
+ * 
  */
+#ifndef CYBERTRON_BASE_SINGLETON_HPP
+#define CYBERTRON_BASE_SINGLETON_HPP
+
+#include "noncopyable.hpp"
+
+#include <mutex>
 
 namespace cybertron::base {
-    class Singleton {
-    private:
-        Singleton(){};
-        ~Singleton(){};
-        Singleton(const Singleton &);
-        Singleton &operator=(const Singleton &);
+template <typename T>
+/**
+	 * @brief A template singleton class, use singleton through function
+	 * "GetInstance"
+	 *
+	 */
+class Singleton : public Noncopyable {
+public:
+    Singleton(Singleton&&) = delete;
+    Singleton(const Singleton&) = delete;
+    Singleton& operator=(const Singleton&&) = delete;
 
-    public:
-        static Singleton &get_instance() {
-            static Singleton instance;
-            return instance;
-        }
+    template <typename... Args>
+    static T& GetInstance(Args&&... args) {
+        std::call_once(init_flag_, Initialize<Args...>,
+                       std::forward<Args>(args)...);
+        return *instance_;
     }
-}
+
+protected:
+    Singleton() = default;
+    virtual ~Singleton() = default;
+
+private:
+    template <typename... Args>
+    static void Initialize(Args&&... args) {
+        if (!instance_) {
+            return;
+        }
+        instance_ = new T(std::forward<Args>(args)...);
+        std::atexit(Destroy);
+    }
+
+    static void Destroy() {
+        delete instance_;
+        instance_ = nullptr;
+    }
+
+private:
+    static T* instance_;
+    static std::once_flag init_flag_;
+};
+
+template <typename T>
+T* Singleton<T>::instance_ = nullptr;
+
+template <typename T>
+std::once_flag Singleton<T>::init_flag_;
+
+}  // namespace cybertron::base
+
+#endif
