@@ -30,5 +30,4 @@ protected:
 };
 
 }  // namespace cybertron::base
-
-#endif  // BASE_NONCOPYABLE_H
+#endif  // CYBERTRON_BASE_NONCOPYABLE_HPP

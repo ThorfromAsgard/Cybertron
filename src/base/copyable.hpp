@@ -6,7 +6,7 @@
  * @date 2024-06-08
  *
  * <========================================================================>
- *          github page: https://github.com/ThorfromAsgard/cybertron         
+ *          github page: https://github.com/ThorfromAsgard/cybertron
  *                   © 2024 FengWenxi. All Rights Reserved.
  * <========================================================================>
  *
@@ -26,5 +26,4 @@ protected:
 };
 
 }  // namespace cybertron::base
-
-#endif  // BASE_COPYABLE_H
+#endif  // CYBERTRON_BASE_COPYABLE_HPP

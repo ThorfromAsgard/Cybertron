@@ -6,7 +6,7 @@
  * @date 2024-06-08
  *
  * <========================================================================>
- *          github page: https://github.com/ThorfromAsgard/cybertron
+ *          github page: https://github.com/ThorfromAsgard/cybertron         
  *                   © 2024 FengWenxi. All Rights Reserved.
  * <========================================================================>
  *
@@ -14,14 +14,15 @@
 #ifndef CYBERTRON_BASE_SINGLETON_HPP
 #define CYBERTRON_BASE_SINGLETON_HPP
 
-#include "noncopyable.hpp"
-
 #include <mutex>
+#include <cstdlib>
+
+#include "noncopyable.hpp"
 
 namespace cybertron::base {
 template <typename T>
 /**
- * @brief A template singleton class, use singleton through function "GetInstance()"
+ * @brief A template singleton class, use singleton through function "get_instance()"
  *
  */
 class Singleton : public Noncopyable {
@@ -31,8 +32,8 @@ public:
     Singleton& operator=(const Singleton&&) = delete;
 
     template <typename... Args>
-    static T& GetInstance(Args&&... args) {
-        std::call_once(init_flag_, Initialize<Args...>, std::forward<Args>(args)...);
+    static T& get_instance(Args&&... args) {
+        std::call_once(init_flag_, init<Args...>, std::forward<Args>(args)...);
         return *instance_;
     }
 
@@ -42,15 +43,15 @@ protected:
 
 private:
     template <typename... Args>
-    static void Initialize(Args&&... args) {
-        if (!instance_) {
+    static void init(Args&&... args) {
+        if (instance_) {
             return;
         }
         instance_ = new T(std::forward<Args>(args)...);
-        std::atexit(Destroy);
+        std::atexit(destroy);
     }
 
-    static void Destroy() {
+    static void destroy() {
         delete instance_;
         instance_ = nullptr;
     }
@@ -67,5 +68,4 @@ template <typename T>
 std::once_flag Singleton<T>::init_flag_;
 
 }  // namespace cybertron::base
-
-#endif
+#endif  // CYBERTRON_BASE_SINGLETON_HPP

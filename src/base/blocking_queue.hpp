@@ -6,7 +6,7 @@
  * @date 2024-06-08
  *
  * <========================================================================>
- *          github page: https://github.com/ThorfromAsgard/cybertron         
+ *          github page: https://github.com/ThorfromAsgard/cybertron
  *                   © 2024 FengWenxi. All Rights Reserved.
  * <========================================================================>
  *
@@ -14,12 +14,12 @@
 #ifndef CYBERTRON_BASE_BLOCKING_QUEUE_HPP
 #define CYBERTRON_BASE_BLOCKING_QUEUE_HPP
 
-#include "noncopyable.hpp"
-
 #include <mutex>
 #include <deque>
 #include <iostream>
 #include <condition_variable>
+
+#include "noncopyable.hpp"
 
 namespace cybertron::base {
 template <typename T>
@@ -40,18 +40,18 @@ public:
      * set it to 0, if you are not sure, then you are not aware !!!!!!
      *
      */
-    explicit BlockingQueue(bool push_block = false, size_t capacity_limit = 0)
-        : push_block_(push_block),
-          capacity_limit_(capacity_limit),
-          mutex_(),
-          producer_(),
-          consumer_(),
-          deque_(),
-          active_(true) {
-        std::cout << "Blocking Queue capacity: " << capacity_limit_ << std::endl;
-        if (capacity_limit_ == 0) {
-            // TODO: Find another way to warning!
-            std::cout << "Warning! Blocking queue parameter {capacity_limit} is set to 0, may cause out of memory."
+    explicit BlockingQueue(size_t capacity_limit = 0, bool push_block = false)
+        : _push_block(push_block),
+          _capacity_limit(capacity_limit),
+          _mutex(),
+          _producer(),
+          _consumer(),
+          _dequeue(),
+          _active(true) {
+        std::cout << "Blocking Queue capacity: " << _capacity_limit << std::endl;
+        if (_capacity_limit == 0) {
+            // TODO: Find another way to warning! Use glog instead.
+            std::cerr << "Warning! Blocking queue parameter {capacity_limit} is set to 0, may cause out of memory."
                       << std::endl;
         }
     }
@@ -61,14 +61,16 @@ public:
      *
      * #TODO: Do tests to make sure this works fine!
      */
-    ~BlockingQueue() {
+    ~BlockingQueue() { close(); }
+
+    void close() {
         {
-            std::lock_guard<std::mutex> lock(mutex_);
-            deque_.clear();
-            active_ = false;
+            std::lock_guard<std::mutex> lock(_mutex);
+            _dequeue.clear();
+            _active = false;
         }
-        producer_.notify_all();
-        consumer_.notify_all();
+        _producer.notify_all();
+        _consumer.notify_all();
     }
 
     /**
@@ -81,29 +83,32 @@ public:
      * to the back of the queue,
      * @return false if it fails.
      */
-    bool PushBack(const T& element, const int64_t& timeout = 0) {
-        std::unique_lock<std::mutex> lock(mutex_);
-        if (push_block_) {
-            std::cv_status is_timeout = std::cv_status::no_timeout;
+    bool push_back(const T& element, const int64_t& timeout = 0) {
+        std::unique_lock<std::mutex> lock(_mutex);
+        if (_push_block) {
+            bool is_woken_up = false;
             if (timeout) {
-                is_timeout = producer_.wait_for(lock, std::chrono::microseconds(timeout), [&] {
-                    return ((!active_) || (!capacity_limit_) || (capacity_limit_ && (deque_.size() < capacity_limit_)));
+                is_woken_up = _producer.wait_for(lock, std::chrono::microseconds(timeout), [&] {
+                    return ((!_active) || (!_capacity_limit) ||
+                            (_capacity_limit && (_dequeue.size() < _capacity_limit)));
                 });
             } else {
-                producer_.wait(lock, [&] {
-                    return ((!active_) || (!capacity_limit_) || (capacity_limit_ && (deque_.size() < capacity_limit_)));
+                _producer.wait(lock, [&] {
+                    return ((!_active) || (!_capacity_limit) ||
+                            (_capacity_limit && (_dequeue.size() < _capacity_limit)));
                 });
+                is_woken_up = true;
             }
-            if ((!active_) || (is_timeout == std::cv_status::timeout)) {
+            if ((!_active) || (!is_woken_up)) {
                 return false;
             }
         } else {
-            while (capacity_limit_ && deque_.size() >= capacity_limit_) {
-                deque_.pop_front();
+            while (_capacity_limit && _dequeue.size() >= _capacity_limit) {
+                _dequeue.pop_front();
             }
         }
-        deque_.push_back(element);
-        consumer_.notify_one();
+        _dequeue.push_back(element);
+        _consumer.notify_one();
         return true;
     }
 
@@ -117,29 +122,32 @@ public:
      * to the back of the queue,
      * @return false if it fails.
      */
-    bool PushBack(T&& element, const uint64_t& timeout = 0) {
-        std::unique_lock<std::mutex> lock(mutex_);
-        if (push_block_) {
-            std::cv_status is_timeout = std::cv_status::no_timeout;
+    bool push_back(T&& element, const int64_t& timeout = 0) {
+        std::unique_lock<std::mutex> lock(_mutex);
+        if (_push_block) {
+            bool is_woken_up = false;
             if (timeout) {
-                is_timeout = producer_.wait_for(lock, std::chrono::microseconds(timeout), [&] {
-                    return ((!active_) || (!capacity_limit_) || (capacity_limit_ && (deque_.size() < capacity_limit_)));
+                is_woken_up = _producer.wait_for(lock, std::chrono::microseconds(timeout), [&] {
+                    return ((!_active) || (!_capacity_limit) ||
+                            (_capacity_limit && (_dequeue.size() < _capacity_limit)));
                 });
             } else {
-                producer_.wait(lock, [&] {
-                    return ((!active_) || (!capacity_limit_) || (capacity_limit_ && (deque_.size() < capacity_limit_)));
+                _producer.wait(lock, [&] {
+                    return ((!_active) || (!_capacity_limit) ||
+                            (_capacity_limit && (_dequeue.size() < _capacity_limit)));
                 });
+                is_woken_up = true;
             }
-            if ((!active_) || (is_timeout == std::cv_status::timeout)) {
+            if ((!_active) || (!is_woken_up)) {
                 return false;
             }
         } else {
-            while (capacity_limit_ && deque_.size() >= capacity_limit_) {
-                deque_.pop_front();
+            while (_capacity_limit && _dequeue.size() >= _capacity_limit) {
+                _dequeue.pop_front();
             }
         }
-        deque_.push_back(std::move(element));
-        consumer_.notify_one();
+        _dequeue.push_back(std::move(element));
+        _consumer.notify_one();
         return true;
     }
 
@@ -153,29 +161,32 @@ public:
      * to the front of the queue,
      * @return false if it fails.
      */
-    bool PushFront(const T& element, const uint64_t& timeout = 0) {
-        std::unique_lock<std::mutex> lock(mutex_);
-        if (push_block_) {
-            std::cv_status is_timeout = std::cv_status::no_timeout;
+    bool push_front(const T& element, const int64_t& timeout = 0) {
+        std::unique_lock<std::mutex> lock(_mutex);
+        if (_push_block) {
+            bool is_woken_up = false;
             if (timeout) {
-                is_timeout = producer_.wait_for(lock, std::chrono::microseconds(timeout), [&] {
-                    return ((!active_) || (!capacity_limit_) || (capacity_limit_ && (deque_.size() < capacity_limit_)));
+                is_woken_up = _producer.wait_for(lock, std::chrono::microseconds(timeout), [&] {
+                    return ((!_active) || (!_capacity_limit) ||
+                            (_capacity_limit && (_dequeue.size() < _capacity_limit)));
                 });
             } else {
-                producer_.wait(lock, [&] {
-                    return ((!active_) || (!capacity_limit_) || (capacity_limit_ && (deque_.size() < capacity_limit_)));
+                _producer.wait(lock, [&] {
+                    return ((!_active) || (!_capacity_limit) ||
+                            (_capacity_limit && (_dequeue.size() < _capacity_limit)));
                 });
+                is_woken_up = true;
             }
-            if ((!active_) || (is_timeout == std::cv_status::timeout)) {
+            if ((!_active) || (!is_woken_up)) {
                 return false;
             }
         } else {
-            while (capacity_limit_ && deque_.size() >= capacity_limit_) {
-                deque_.pop_back();
+            while (_capacity_limit && _dequeue.size() >= _capacity_limit) {
+                _dequeue.pop_back();
             }
         }
-        deque_.push_front(element);
-        consumer_.notify_one();
+        _dequeue.push_front(element);
+        _consumer.notify_one();
     }
 
     /**
@@ -188,29 +199,32 @@ public:
      * to the front of the queue,
      * @return false if it fails.
      */
-    bool PushFront(T&& item, const uint64_t& timeout = 0) {
-        std::unique_lock<std::mutex> lock(mutex_);
-        if (push_block_) {
-            std::cv_status is_timeout = std::cv_status::no_timeout;
+    bool push_front(T&& item, const int64_t& timeout = 0) {
+        std::unique_lock<std::mutex> lock(_mutex);
+        if (_push_block) {
+            bool is_woken_up = false;
             if (timeout) {
-                is_timeout = producer_.wait_for(lock, std::chrono::microseconds(timeout), [&] {
-                    return ((!active_) || (!capacity_limit_) || (capacity_limit_ && (deque_.size() < capacity_limit_)));
+                is_woken_up = _producer.wait_for(lock, std::chrono::microseconds(timeout), [&] {
+                    return ((!_active) || (!_capacity_limit) ||
+                            (_capacity_limit && (_dequeue.size() < _capacity_limit)));
                 });
             } else {
-                producer_.wait(lock, [&] {
-                    return ((!active_) || (!capacity_limit_) || (capacity_limit_ && (deque_.size() < capacity_limit_)));
+                _producer.wait(lock, [&] {
+                    return ((!_active) || (!_capacity_limit) ||
+                            (_capacity_limit && (_dequeue.size() < _capacity_limit)));
                 });
+                is_woken_up = true;
             }
-            if ((!active_) || (is_timeout == std::cv_status::timeout)) {
+            if ((!_active) || (!is_woken_up)) {
                 return false;
             }
         } else {
-            while (capacity_limit_ && deque_.size() >= capacity_limit_) {
-                deque_.pop_back();
+            while (_capacity_limit && _dequeue.size() >= _capacity_limit) {
+                _dequeue.pop_back();
             }
         }
-        deque_.push_front(std::move(item));
-        consumer_.notify_one();
+        _dequeue.push_front(std::move(item));
+        _consumer.notify_one();
     }
 
     /**
@@ -223,22 +237,23 @@ public:
      * from the front of the queue,
      * @return false if it fails.
      */
-    bool PopFront(T& element, const int& timeout = 0) {
-        std::unique_lock<std::mutex> lock(mutex_);
-        std::cv_status is_timeout = std::cv_status::no_timeout;
+    bool pop_front(T& element, const int64_t& timeout = 0) {
+        std::unique_lock<std::mutex> lock(_mutex);
+        bool is_woken_up = false;
         if (timeout) {
-            is_timeout = consumer_.wait_for(lock, std::chrono::microseconds(timeout),
-                                            [&] { return ((!active_) || (!deque_.empty())); });
+            is_woken_up = _consumer.wait_for(lock, std::chrono::microseconds(timeout),
+                                             [&] { return ((!_active) || (!_dequeue.empty())); });
         } else {
-            consumer_.wait(lock, [&] { return ((!active_) || (!deque_.empty())); });
+            _consumer.wait(lock, [&] { return ((!_active) || (!_dequeue.empty())); });
+            is_woken_up = true;
         }
-        if ((!active_) || (is_timeout == std::cv_status::timeout)) {
+        if ((!_active) || (!is_woken_up)) {
             return false;
         };
-        element = deque_.front();
-        deque_.pop_front();
-        if (push_block_) {
-            producer_.notify_one();
+        element = _dequeue.front();
+        _dequeue.pop_front();
+        if (_push_block) {
+            _producer.notify_one();
         }
         return true;
     }
@@ -253,70 +268,69 @@ public:
      * from the back of the queue,
      * @return false if it fails.
      */
-    bool PopBack(T& element, const int& timeout = 0) {
-        std::unique_lock<std::mutex> lock(mutex_);
-        std::cv_status is_timeout = std::cv_status::no_timeout;
+    bool pop_back(T& element, const int64_t& timeout = 0) {
+        std::unique_lock<std::mutex> lock(_mutex);
+        bool is_woken_up = false;
         if (timeout) {
-            is_timeout = consumer_.wait_for(lock, std::chrono::microseconds(timeout),
-                                            [&] { return ((!active_) || (!deque_.empty())); });
+            is_woken_up = _consumer.wait_for(lock, std::chrono::microseconds(timeout),
+                                             [&] { return ((!_active) || (!_dequeue.empty())); });
         } else {
-            consumer_.wait(lock, [&] { return ((!active_) || (!deque_.empty())); });
+            _consumer.wait(lock, [&] { return ((!_active) || (!_dequeue.empty())); });
+            is_woken_up = true;
         }
-        if ((!active_) || (is_timeout == std::cv_status::timeout)) {
+        if ((!_active) || (!is_woken_up)) {
             return false;
         };
-        element = deque_.back();
-        deque_.pop_back();
-        if (push_block_) {
-            producer_.notify_one();
+        element = _dequeue.back();
+        _dequeue.pop_back();
+        if (_push_block) {
+            _producer.notify_one();
         }
         return true;
     }
 
-    size_t Size() const {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return deque_.size();
+    size_t size() {
+        std::lock_guard<std::mutex> lock(_mutex);
+        return _dequeue.size();
     }
 
-    size_t Capacity() {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return capacity_limit_;
+    size_t capacity() { return _capacity_limit; }
+
+    bool empty() {
+        std::lock_guard<std::mutex> lock(_mutex);
+        return _dequeue.empty();
     }
 
-    bool Empty() {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return deque_.empty();
+    bool full() {
+        std::lock_guard<std::mutex> lock(_mutex);
+        return (_dequeue.size() >= _capacity_limit);
     }
 
-    bool Full() {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return (deque_.size() >= capacity_limit_);
+    T front() {
+        std::lock_guard<std::mutex> lock(_mutex);
+        return _dequeue.front();
     }
 
-    T Front() {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return deque_.front();
+    T back() {
+        std::lock_guard<std::mutex> lock(_mutex);
+        return _dequeue.back();
     }
 
-    T Back() {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return deque_.back();
-    }
-
-    void Clear() {
-        std::lock_guard<std::mutex> lock(mutex_);
-        deque_.clear();
+    void clear() {
+        std::lock_guard<std::mutex> lock(_mutex);
+        while (_dequeue.size()) {}
+        _dequeue.clear();
     }
 
 private:
-    const bool push_block_;
-    bool active_;
-    const size_t capacity_limit_;
-    std::mutex mutex_;
-    std::condition_variable consumer_;  // guarded by mutex_
-    std::condition_variable producer_;  // guarded by mutex_
-    std::deque<T> deque_;               // guarded by mutex_
+    const bool _push_block;
+    bool _active;
+    const size_t _capacity_limit;
+    std::mutex _mutex;
+    std::condition_variable _consumer;  // guarded by _mutex
+    std::condition_variable _producer;  // guarded by _mutex
+    std::deque<T> _dequeue;             // guarded by _mutex
 };
-}  // namespace cybertron::base
 
-#endif
+}  // namespace cybertron::base
+#endif  // CYBERTRON_BASE_BLOCKING_QUEUE_HPP
